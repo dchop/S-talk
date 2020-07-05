@@ -3,7 +3,7 @@ CFLAGS = -Wall -g -std=c99 -D _POSIX_C_SOURCE=200809L
 all: build
 
 build: 
-	gcc $(CFLAGS) s-talk.c main.c -lpthread -o output
+	gcc -std=c11 $(CFLAGS) instructorList.o s-talk.c main.c -lpthread -o output
 
 run: build
 	./output

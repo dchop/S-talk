@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <netdb.h>
 #include "s-talk.h"
+#include "list.h"
 
 static pthread_t keyboardInput;
 static pthread_t sendingInput;
