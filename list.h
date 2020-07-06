@@ -1,3 +1,9 @@
+/**
+ * list.h for Assignment 1, CMPT 300 Summer 2020
+ * Name: Devansh Chopra
+ * Student #: 301-275-491
+ */
+
 // List data type
 // You may modify this file as needed; however,
 // you may *NOT* modify the function prototypes or constant names.
@@ -6,16 +12,23 @@
 #define _LIST_H_
 #include <stdbool.h>
 
-#define LIST_SUCCESS 0
-#define LIST_FAIL -1
-
-// Full types defined in .c file
 typedef struct Node_s Node;
-struct Node_s;
+struct Node_s {
+    void *value;
+    struct Node_s* next;
+    struct Node_s* previous;
+};
 
 typedef struct List_s List;
-struct List_s;
-
+struct List_s {
+    void* head;
+    void* current;
+    void* tail;
+    int number_of_nodes;
+    bool check_if_at_head;
+    bool check_if_at_tail;
+    struct List_s* next;
+};
 
 // Maximum number of unique lists the system can support
 // (You may modify its value for your needs)
@@ -110,7 +123,7 @@ void* List_trim(List* pList);
 // that item is returned. If no match is found, the current pointer is left beyond the end of 
 // the list and a NULL pointer is returned.
 // 
-// UPDATED: Added May 19
+// UPDATED: Added clarification of behaviour May 19
 // If the current pointer is before the start of the pList, then start searching from
 // the first node in the list (if any).
 typedef bool (*COMPARATOR_FN)(void* pItem, void* pComparisonArg);
