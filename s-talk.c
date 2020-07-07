@@ -15,6 +15,9 @@ static pthread_t sendingInput;
 static pthread_t receivedInput;
 static pthread_t printingInputToScreen;
 
+static pthread_mutex_t addToSendingList;
+static pthread_mutex_t removeFromReceivingList;
+
 struct sockaddr_in forLocalMachine;
 struct sockaddr_in forRemoteMachine;
 static int socketDescriptor; 
@@ -73,9 +76,7 @@ char **setupPorts(char** args)
     // Setting up remote port
     // strcpy(remotePortString, remotePort);
     // strcpy(s, remoteMachine);
-
 }
-
 
 void Threads_init()
 {
@@ -88,37 +89,98 @@ void Threads_init()
     pthread_create(&printingInputToScreen, NULL, inputToPrint, ReceivingList);
 }
 
-void *inputFromKeyboard(void *unused)
+void inputFromKeyboard(List* SendingList)
 {
-    char *readBuffer[512];
-    printf("inputFromKeyboard\n");
-    fgets(readBuffer, 512, stdin);
+    while(1)
+    {
+        char readBuffer[512];
+        printf("inputFromKeyboard\n");
+        fgets(readBuffer, 512, stdin);
+
+        // pthread_mutex_lock(&addToSendingList);
+        // {
+        List_add(SendingList, readBuffer);
+        int k = List_count(SendingList);
+        printf("k is: %d\n", k);
+        // printf("input was: %s\n", readBuffer);
+        // }
+        // pthread_mutex_unlock(&addToSendingList);
+    }
     // sendto(socketDescriptor, readBuffer, 512, 0, (struct sockaddr *)&remote, sizeof(struct sockaddr_in));
-    if(sendto(socketDescriptor, readBuffer, 512, 0, remoteinfo -> ai_addr, remoteinfo->ai_addrlen) == -1){
-                          perror("talker: sendto");
-                          exit(1);
-                      
-              }
 
 }
 
-void *inputToSend(void *unused)
+void *inputToSend(List* SendingList)
 {
     printf("inputToSend\n");
+
+    char *sendBuffer;
+
+    while(1)
+    {
+        if(List_count(SendingList) > 0){
+        // pthread_mutex_lock(&addToSendingList);
+        // {
+            int k = List_count(SendingList);
+            // printf("count is: %d\n", k);
+            sendBuffer = List_remove(SendingList);
+            if (*sendBuffer == '!'){
+                return NULL;
+            }
+        // }
+        // pthread_mutex_unlock(&addToSendingList);
+        printf("input was: %s\n", sendBuffer);
+        if(sendto(socketDescriptor, sendBuffer, 512, 0, remoteinfo -> ai_addr, remoteinfo->ai_addrlen) == -1){
+                          perror("talker: sendto");
+                          exit(1);        
+        }
+        }
+ 
+        // printf("Value is: %s\n", sendBuffer);
+
+        // break;
+    }
+
+
 }
 
-void *inputReceived(void *unused)
+void inputReceived(List* ReceivingList)
 {
-    char msg[256];
+    char msg[512];
 	socklen_t fromlen = sizeof(forRemoteMachine);
     printf("inputReceived\n");
-    recvfrom(socketDescriptor, msg, 256, 0, (struct sockaddr *)&forRemoteMachine, &fromlen);
-    printf("message is %s\n", msg);
-
+    while(1)
+    {
+        recvfrom(socketDescriptor, msg, 512, 0, (struct sockaddr *)&forRemoteMachine, &fromlen);
+        // printf("message is %s\n", msg);
+        // pthread_mutex_lock(&removeFromReceivingList);
+        // {
+        List_add(ReceivingList, msg);
+        // break;
+        // }
+        // pthread_mutex_unlock(&removeFromReceivingList);
+    }
 }
 
-void *inputToPrint(void *unused)
+void inputToPrint(List* ReceivingList)
 {
+    char *readBuffer1;
+    while(1)
+    {
+        if(List_count(ReceivingList)> 0){
+        // pthread_mutex_lock(&removeFromReceivingList);
+        // {
+            int k = List_count(ReceivingList);
+            // printf("count is: %d\n", k);
+            readBuffer1 = List_remove(ReceivingList);
+            printf("Message is: %s\n", readBuffer1);
+            // fputs(readBuffer1, stdout);
+        // }
+            // break;
+        // pthread_mutex_unlock(&removeFromReceivingList);
+        }
+        
+    }
 
 }
 

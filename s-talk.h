@@ -1,18 +1,20 @@
 #ifndef _STALK_H_
 #define _STALK_H_
 
+#include "list.h"
+
 
 void Threads_init();
 
 char **setupPorts(char** args);
 
-void *inputFromKeyboard(void *unused);
+void inputFromKeyboard(List* SendingList);
 
-void *inputToSend(void *unused);
+void *inputToSend(List* SendingList);
 
-void *inputReceived(void *unused);
+void inputReceived(List* ReceivingList);
 
-void *inputToPrint(void *unused);
+void inputToPrint(List* ReceivingList);
 
 void Threads_shutdown(void);
 
