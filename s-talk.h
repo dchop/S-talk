@@ -4,7 +4,7 @@
 
 void Threads_init();
 
-int setupPorts(int localPort, int remotePort);
+char **setupPorts(char** args);
 
 void *inputFromKeyboard(void *unused);
 

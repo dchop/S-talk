@@ -19,25 +19,60 @@ struct sockaddr_in forLocalMachine;
 struct sockaddr_in forRemoteMachine;
 static int socketDescriptor; 
 
-int setupPorts(localPort, remotePort)
+char remotePortString[10];
+
+int status;
+int statusRemote;
+
+struct addrinfo hints, *servinfo;
+struct addrinfo remote, *remoteinfo;
+
+char s[INET6_ADDRSTRLEN];
+
+char **setupPorts(char** args)
 {
-    // Setting up local port 
-    memset(&forLocalMachine, 0, sizeof(forLocalMachine));
-    forLocalMachine.sin_family = AF_INET;
-    forLocalMachine.sin_port = htons(localPort);
-    forLocalMachine.sin_addr.s_addr = INADDR_ANY;
 
-    socketDescriptor = socket(PF_INET, SOCK_DGRAM, 0);
-
-    // Bind Socket
-    bind(socketDescriptor, (struct sockaddr *) &forLocalMachine, sizeof(forLocalMachine));
+    int localPort = atoi(args[1]);
+    int remoteMachine = atoi(args[2]);
+    int remotePort = atoi(args[3]);
     
+
+    // Setting up local port 
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_DGRAM;
+    hints.ai_flags = AI_PASSIVE;
+    // forLocalMachine.sin_port = htons(localPort);
+    // forLocalMachine.sin_addr.s_addr = INADDR_ANY;
+    if ((status = getaddrinfo(NULL, args[1], &hints, &servinfo)) != 0) {
+        fprintf(stderr, "getaddrinfo error: %s\n", gai_strerror(status));
+        exit(1);
+    }
+
+    socketDescriptor = socket(servinfo->ai_family, servinfo->ai_socktype, servinfo->ai_protocol);
+
+    bind(socketDescriptor, servinfo->ai_addr, servinfo->ai_addrlen);
+
+    memset(&remote, 0, sizeof(remote));
+    remote.ai_family = AF_INET;
+    remote.ai_socktype = SOCK_DGRAM;
+    remote.ai_flags = AI_PASSIVE;
+
+    if((statusRemote = getaddrinfo(args[2], args[3], &remote, &remoteinfo)) != 0){
+        fprintf(stderr, "getaddrinfo error: %s\n", gai_strerror(status));
+        return NULL;
+        //exit(1);
+    }
+
+    printf("HI\n");
+    // Bind Socket
+
     printf("local port is: %d\n", localPort);
     printf("remote port is: %d\n", remotePort);
 
-    memset(&forRemoteMachine, 0, sizeof(forRemoteMachine));
-    forRemoteMachine.sin_family = AF_INET;
-    forLocalMachine.sin_port = htons(remotePort);
+    // Setting up remote port
+    // strcpy(remotePortString, remotePort);
+    // strcpy(s, remoteMachine);
 
 }
 
@@ -58,7 +93,12 @@ void *inputFromKeyboard(void *unused)
     char *readBuffer[512];
     printf("inputFromKeyboard\n");
     fgets(readBuffer, 512, stdin);
-    sendto(socketDescriptor, readBuffer, 512, 0, (struct sockaddr *)&forRemoteMachine, sizeof(struct sockaddr_in));
+    // sendto(socketDescriptor, readBuffer, 512, 0, (struct sockaddr *)&remote, sizeof(struct sockaddr_in));
+    if(sendto(socketDescriptor, readBuffer, 512, 0, remoteinfo -> ai_addr, remoteinfo->ai_addrlen) == -1){
+                          perror("talker: sendto");
+                          exit(1);
+                      
+              }
 
 }
 

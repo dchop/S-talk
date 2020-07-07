@@ -9,11 +9,10 @@
 
 int main (int argc, char** args)
 {
-    int localPort = atoi(args[1]);
-    int remotePort = atoi(args[3]);
+
 
     printf("In main\n");
-    setupPorts(localPort, remotePort);
+    setupPorts(args);
 
 
     Threads_init();
