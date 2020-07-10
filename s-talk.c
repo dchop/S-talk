@@ -16,11 +16,11 @@ static pthread_t receivedInput;
 static pthread_t printingInputToScreen;
 
 // Sending Mutexes
-static pthread_mutex_t SendingList = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t sendList = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t checkSendListEmpty = PTHREAD_MUTEX_INITIALIZER;
 
 // Receiving Mutexes
-static pthread_mutex_t ReceivingList = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t receiveList = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t checkReceiveListEmpty = PTHREAD_MUTEX_INITIALIZER;
 
 // Conditional variable for checking if sending list is empty
@@ -119,14 +119,14 @@ void inputFromKeyboard(List* SendingList)
             continue;
         }
 
-        pthread_mutex_lock(&SendingList);
+        pthread_mutex_lock(&sendList);
         {
             List_add(SendingList, readBuffer);
             int k = List_count(SendingList);
             printf("k is: %d\n", k);
             // printf("input was: %s\n", readBuffer);
         }
-        pthread_mutex_unlock(&SendingList);
+        pthread_mutex_unlock(&sendList);
 
         if(List_count(SendingList) == 1){
             pthread_mutex_lock(&checkSendListEmpty);
@@ -167,7 +167,7 @@ void *inputToSend(List* SendingList)
             pthread_mutex_unlock(&checkSendListEmpty);
         }
         printf("GOT IT\n");
-        pthread_mutex_lock(&SendingList);
+        pthread_mutex_lock(&sendList);
         {
             int k = List_count(SendingList);
             printf("count is: %d\n", k);
@@ -176,7 +176,7 @@ void *inputToSend(List* SendingList)
             //     return NULL;
             // }
         }
-        pthread_mutex_unlock(&SendingList);
+        pthread_mutex_unlock(&sendList);
 
         printf("input was: %s\n", sendBuffer);
         if(sendto(socketDescriptor, sendBuffer, 512, 0, remoteinfo -> ai_addr, remoteinfo->ai_addrlen) == -1){
@@ -211,11 +211,11 @@ void inputReceived(List* ReceivingList)
         // printf("message is %s\n", msg);
         // pthread_mutex_lock(&removeFromReceivingList);
         // {
-        pthread_mutex_lock(&ReceivingList);
+        pthread_mutex_lock(&receiveList);
         {
             List_add(ReceivingList, msg);
         }
-        pthread_mutex_unlock(&ReceivingList);
+        pthread_mutex_unlock(&receiveList);
 
         if(List_count(ReceivingList) == 1){
             pthread_mutex_lock(&checkReceiveListEmpty);
@@ -252,13 +252,13 @@ void inputToPrint(List* ReceivingList)
         // if(List_count(ReceivingList)> 0){
         // pthread_mutex_lock(&removeFromReceivingList);
         // {
-        pthread_mutex_lock(&ReceivingList);
+        pthread_mutex_lock(&receiveList);
         {
             int k = List_count(ReceivingList);
             // printf("count is: %d\n", k);
             readBuffer1 = List_remove(ReceivingList);
         }
-        pthread_mutex_unlock(&ReceivingList);
+        pthread_mutex_unlock(&receiveList);
 
         printf("Message is: %s\n", readBuffer1);
 
