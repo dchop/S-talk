@@ -27,6 +27,15 @@ static pthread_mutex_t checkReceiveListEmpty = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t emptySendingList = PTHREAD_COND_INITIALIZER;
 static pthread_cond_t emptyReceiveList = PTHREAD_COND_INITIALIZER;
 
+// Making sure there is only one item in Sender List
+static pthread_mutex_t waitForSender = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t waitForSenderToFinish = PTHREAD_COND_INITIALIZER;
+
+// Making sure there is only one item in the Receiver List
+static pthread_mutex_t waitForReceiver = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t waitForReciverToPrint = PTHREAD_COND_INITIALIZER;
+
+
 struct sockaddr_in forLocalMachine;
 struct sockaddr_in forRemoteMachine;
 static int socketDescriptor; 
@@ -127,6 +136,15 @@ void inputFromKeyboard(List* SendingList)
             }
             pthread_mutex_unlock(&checkSendListEmpty);
         }
+
+        pthread_mutex_lock(&waitForSender);
+        {
+            pthread_cond_wait(&waitForSenderToFinish, &waitForSender);
+            memset(&readBuffer, 0, sizeof(readBuffer));
+            fflush(stdin);
+        }
+        pthread_mutex_unlock(&waitForSender);
+
     }
     // sendto(socketDescriptor, readBuffer, 512, 0, (struct sockaddr *)&remote, sizeof(struct sockaddr_in));
 
@@ -166,6 +184,13 @@ void *inputToSend(List* SendingList)
                           exit(1);        
         }
         
+        pthread_mutex_lock(&waitForSender);
+        {
+            pthread_cond_signal(&waitForSenderToFinish);
+            memset(&sendBuffer, 0, sizeof(sendBuffer));
+        }
+        pthread_mutex_unlock(&waitForSender);
+        
  
         // printf("Value is: %s\n", sendBuffer);
 
@@ -199,6 +224,13 @@ void inputReceived(List* ReceivingList)
             }
             pthread_mutex_unlock(&checkReceiveListEmpty);
         }
+
+        pthread_mutex_lock(&waitForReceiver);
+        {
+            pthread_cond_wait(&waitForReciverToPrint, &waitForReceiver);
+            memset(&msg, 0, sizeof(msg));
+        }
+        pthread_mutex_unlock(&waitForReceiver);
         // break;
         // }
         // pthread_mutex_unlock(&removeFromReceivingList);
@@ -229,6 +261,13 @@ void inputToPrint(List* ReceivingList)
         pthread_mutex_unlock(&ReceivingList);
 
         printf("Message is: %s\n", readBuffer1);
+
+        pthread_mutex_lock(&waitForReceiver);
+        {
+            pthread_cond_signal(&waitForReciverToPrint);
+            memset(&readBuffer1, 0, sizeof(readBuffer1));
+        }
+        pthread_mutex_unlock(&waitForReceiver);
             // fputs(readBuffer1, stdout);
         // }
             // break;
