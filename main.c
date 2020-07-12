@@ -90,11 +90,6 @@ void *inputFromKeyboard(List* SendingList)
             pthread_mutex_unlock(&checkSendListEmpty);
         }
 
-        if (checkForExclamatiion == 1){
-            pthread_cancel(keyboardInput);
-            //  pthread_exit(NULL);
-        }
-
         pthread_mutex_lock(&waitForSender);
         {
             pthread_cond_wait(&waitForSenderToFinish, &waitForSender);
@@ -103,6 +98,10 @@ void *inputFromKeyboard(List* SendingList)
         }
         pthread_mutex_unlock(&waitForSender);
 
+        if (checkForExclamatiion == 1){
+            pthread_cancel(keyboardInput);
+            //  pthread_exit(NULL);
+        }
 
 
     }
@@ -150,13 +149,6 @@ void *inputToSend(List* SendingList)
                           return NULL;        
         }
 
-        if(checkForExclamatiion == 1){
-            printf("ABOUT TO break in sending\n");
-            pthread_cancel(receivedInput);
-            pthread_cancel(printingInputToScreen);
-            // pthread_exit(NULL);
-            pthread_cancel(sendingInput);
-        }
         
         pthread_mutex_lock(&waitForSender);
         {
@@ -164,6 +156,15 @@ void *inputToSend(List* SendingList)
             memset(&sendBuffer, 0, sizeof(sendBuffer));
         }
         pthread_mutex_unlock(&waitForSender);
+
+
+        if(checkForExclamatiion == 1){
+            printf("ABOUT TO break in sending\n");
+            pthread_cancel(receivedInput);
+            pthread_cancel(printingInputToScreen);
+            // pthread_exit(NULL);
+            pthread_cancel(sendingInput);
+        }
         // printf("Value is: %s\n", sendBuffer);
         // break;
 
@@ -212,6 +213,14 @@ void *inputReceived(List* ReceivingList)
             pthread_mutex_unlock(&checkReceiveListEmpty);
         }
 
+        pthread_mutex_lock(&waitForReceiver);
+        {
+            pthread_cond_wait(&waitForReciverToPrint, &waitForReceiver);
+            
+        }
+        pthread_mutex_unlock(&waitForReceiver);
+
+
         if (msg[exclamationLength-2] == '!'){
             printf("about to break in receive\n");
             // checker = 1;
@@ -226,14 +235,6 @@ void *inputReceived(List* ReceivingList)
             // pthread_exit(0);
             // break;
         }
-
-
-        pthread_mutex_lock(&waitForReceiver);
-        {
-            pthread_cond_wait(&waitForReciverToPrint, &waitForReceiver);
-            
-        }
-        pthread_mutex_unlock(&waitForReceiver);
         
 
         memset(&msg, 0, sizeof(msg));
