@@ -72,6 +72,10 @@ void *inputFromKeyboard(List* SendingList)
             printf("check is: %d\n", checkForExclamatiion);
         }
 
+        if(*readBuffer == '!'){
+            checkForExclamatiion = 1;
+        }
+
         pthread_mutex_lock(&sendList);
         {
             List_add(SendingList, readBuffer);
@@ -160,6 +164,16 @@ void *inputToSend(List* SendingList)
 
         if(checkForExclamatiion == 1){
             printf("ABOUT TO break in sending\n");
+
+            // List_free(SendingList);
+
+            pthread_mutex_destroy(&sendList);
+            pthread_mutex_destroy(&checkSendListEmpty);
+            pthread_mutex_destroy(&waitForSender);
+
+            pthread_cond_destroy(&emptySendingList);
+            pthread_cond_destroy(&waitForSenderToFinish);
+
             pthread_cancel(receivedInput);
             pthread_cancel(printingInputToScreen);
             // pthread_exit(NULL);
@@ -170,12 +184,7 @@ void *inputToSend(List* SendingList)
 
     }
 
-    // pthread_mutex_destroy(&sendList);
-    // pthread_mutex_destroy(&checkSendListEmpty);
-    // pthread_mutex_destroy(&waitForSender);
 
-    // pthread_cond_destroy(&emptySendingList);
-    // pthread_cond_destroy(&waitForSenderToFinish);
 
     // pthread_cancel(keyboardInput);
     // pthread_cancel(sendingInput);
@@ -221,7 +230,7 @@ void *inputReceived(List* ReceivingList)
         pthread_mutex_unlock(&waitForReceiver);
 
 
-        if (msg[exclamationLength-2] == '!'){
+        if (*msg == '!'){
             printf("about to break in receive\n");
             // checker = 1;
             pthread_cancel(receivedInput);
@@ -283,6 +292,16 @@ void *inputToPrint(List* ReceivingList)
 
         if (*readBuffer1 == '!'){
             printf("print break\n");
+
+            // List_free(ReceivingList);
+
+            pthread_mutex_destroy(&receiveList);
+            pthread_mutex_destroy(&checkReceiveListEmpty);
+            pthread_mutex_destroy(&waitForReceiver);
+
+            pthread_cond_destroy(&emptyReceiveList);
+            pthread_cond_destroy(&waitForReciverToPrint);
+
             pthread_cancel(sendingInput);
             pthread_cancel(keyboardInput);
             pthread_cancel(printingInputToScreen);
@@ -294,12 +313,7 @@ void *inputToPrint(List* ReceivingList)
     }
 
 
-    // pthread_mutex_destroy(&receiveList);
-    // pthread_mutex_destroy(&checkReceiveListEmpty);
-    // pthread_mutex_destroy(&waitForReceiver);
 
-    // pthread_cond_destroy(&emptyReceiveList);
-    // pthread_cond_destroy(&waitForReciverToPrint);
 
     // pthread_cancel(printingInputToScreen);
     // pthread_cancel(receivedInput);
@@ -312,9 +326,9 @@ void *inputToPrint(List* ReceivingList)
 
 int main (int argc, char** args)
 {
-        int localPort = atoi(args[1]);
-    int remoteMachine = atoi(args[2]);
-    int remotePort = atoi(args[3]);
+    // int localPort = atoi(args[1]);
+    // int remoteMachine = atoi(args[2]);
+    // int remotePort = atoi(args[3]);
     
 
     // Setting up local port 
@@ -347,8 +361,8 @@ int main (int argc, char** args)
     printf("HI\n");
     // Bind Socket
 
-    printf("local port is: %d\n", localPort);
-    printf("remote port is: %d\n", remotePort);
+    // printf("local port is: %d\n", localPort);
+    // printf("remote port is: %d\n", remotePort);
 
     // Setting up remote port
     // strcpy(remotePortString, remotePort);
@@ -360,6 +374,9 @@ int main (int argc, char** args)
 
 
     // Threads_init();
+
+    freeaddrinfo(servinfo);
+    freeaddrinfo(remoteinfo);
 
     List* SendingList = List_create();
     List* ReceivingList = List_create();

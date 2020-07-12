@@ -18,7 +18,7 @@ run: build
 	./output
 
 valgrind: build
-	valgrind --leak-check=full ./output
+	valgrind --leak-check=full cat test.txt | ./output 6060 127.0.0.1 6001
 
 clean:
 	rm -f *.o* *.out* output
