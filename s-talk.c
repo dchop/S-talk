@@ -44,6 +44,7 @@ char remotePortString[10];
 
 int status;
 int statusRemote;
+int checker = 0;
 
 struct addrinfo hints, *servinfo;
 struct addrinfo remote, *remoteinfo;
@@ -110,13 +111,22 @@ void Threads_init()
 void inputFromKeyboard(List* SendingList)
 {
     char readBuffer[512];
+    int checkForExclamatiion = 0;
     printf("inputFromKeyboard\n");
     
     while(1)
     {
+        pthread_testcancel();
 
-        if(fgets(readBuffer, 512, stdin) == NULL){
-            continue;
+        fgets(readBuffer, 512, stdin);
+        // if(fgets(readBuffer, 512, stdin) == NULL){
+        //     continue;
+        // }
+        int lengthOfInput = strlen(readBuffer);
+
+        if(readBuffer[lengthOfInput-2] == '!'){
+            checkForExclamatiion = 1;
+            printf("check is: %d\n", checkForExclamatiion);
         }
 
         pthread_mutex_lock(&sendList);
@@ -124,7 +134,7 @@ void inputFromKeyboard(List* SendingList)
             List_add(SendingList, readBuffer);
             int k = List_count(SendingList);
             printf("k is: %d\n", k);
-            // printf("input was: %s\n", readBuffer);
+            printf("input is: %s\n", readBuffer);
         }
         pthread_mutex_unlock(&sendList);
 
@@ -137,6 +147,7 @@ void inputFromKeyboard(List* SendingList)
             pthread_mutex_unlock(&checkSendListEmpty);
         }
 
+
         pthread_mutex_lock(&waitForSender);
         {
             pthread_cond_wait(&waitForSenderToFinish, &waitForSender);
@@ -145,7 +156,17 @@ void inputFromKeyboard(List* SendingList)
         }
         pthread_mutex_unlock(&waitForSender);
 
+        if (checkForExclamatiion == 1){
+            // pthread_cancel(keyboardInput);
+            break;
+            
+        }
+
     }
+    pthread_exit(NULL);
+    // pthread_cancel(keyboardInput);
+    // pthread_exit(0);
+    // close(socketDescriptor);
     // sendto(socketDescriptor, readBuffer, 512, 0, (struct sockaddr *)&remote, sizeof(struct sockaddr_in));
 
 }
@@ -155,9 +176,11 @@ void *inputToSend(List* SendingList)
     printf("inputToSend\n");
 
     char *sendBuffer;
+    int checkForExclamatiion = 0;
 
     while(1)
     {
+        pthread_testcancel();
         if(List_count(SendingList) == 0){
             pthread_mutex_lock(&checkSendListEmpty);
             {
@@ -172,9 +195,10 @@ void *inputToSend(List* SendingList)
             int k = List_count(SendingList);
             printf("count is: %d\n", k);
             sendBuffer = List_remove(SendingList);
-            // if (*sendBuffer == '!'){
-            //     return NULL;
-            // }
+            if(*sendBuffer == '!'){
+                printf("About to break\n");
+                checkForExclamatiion = 1;
+            }
         }
         pthread_mutex_unlock(&sendList);
 
@@ -183,6 +207,8 @@ void *inputToSend(List* SendingList)
                           perror("talker: sendto");
                           exit(1);        
         }
+
+
         
         pthread_mutex_lock(&waitForSender);
         {
@@ -190,27 +216,46 @@ void *inputToSend(List* SendingList)
             memset(&sendBuffer, 0, sizeof(sendBuffer));
         }
         pthread_mutex_unlock(&waitForSender);
-        
- 
         // printf("Value is: %s\n", sendBuffer);
-
         // break;
+        if(checkForExclamatiion == 1){
+            printf("ABOUT TO break in sending\n");
+            pthread_cancel(receivedInput);
+            pthread_cancel(printingInputToScreen);
+            pthread_exit(NULL);
+            // pthread_cancel(sendingInput);
+        }
     }
 
+    // pthread_mutex_destroy(&sendList);
+    // pthread_mutex_destroy(&checkSendListEmpty);
+    // pthread_mutex_destroy(&waitForSender);
 
+    // pthread_cond_destroy(&emptySendingList);
+    // pthread_cond_destroy(&waitForSenderToFinish);
+
+    // pthread_cancel(keyboardInput);
+    // pthread_cancel(sendingInput);
+    // pthread_cancel(printingInputToScreen);
+    // pthread_cancel(receivedInput);
+    // close(socketDescriptor);
+    // pthread_exit(0);
 }
 
 void inputReceived(List* ReceivingList)
 {
     char msg[512];
 	socklen_t fromlen = sizeof(forRemoteMachine);
+    int exclamationLength;
     printf("inputReceived\n");
     while(1)
     {
+        pthread_testcancel();
         recvfrom(socketDescriptor, msg, 512, 0, (struct sockaddr *)&forRemoteMachine, &fromlen);
         // printf("message is %s\n", msg);
         // pthread_mutex_lock(&removeFromReceivingList);
         // {
+        exclamationLength = strlen(msg);
         pthread_mutex_lock(&receiveList);
         {
             List_add(ReceivingList, msg);
@@ -225,16 +270,35 @@ void inputReceived(List* ReceivingList)
             pthread_mutex_unlock(&checkReceiveListEmpty);
         }
 
+
         pthread_mutex_lock(&waitForReceiver);
         {
             pthread_cond_wait(&waitForReciverToPrint, &waitForReceiver);
-            memset(&msg, 0, sizeof(msg));
+            
         }
         pthread_mutex_unlock(&waitForReceiver);
+        
+        if (msg[exclamationLength-2] == '!'){
+            printf("about to break in receive\n");
+            checker = 1;
+            // pthread_cancel(receivedInput);
+            pthread_exit(NULL);
+            // break;
+           
+            // pthread_join(receivedInput, NULL);
+            // close(socketDescriptor);
+            // pthread_exit(0);
+            // break;
+        }
+        memset(&msg, 0, sizeof(msg));
         // break;
         // }
         // pthread_mutex_unlock(&removeFromReceivingList);
     }
+     
+    // pthread_cancel(receivedInput);
+    // sleep(1);
+    // pthread_exit(0);
 }
 
 void inputToPrint(List* ReceivingList)
@@ -242,6 +306,7 @@ void inputToPrint(List* ReceivingList)
     char *readBuffer1;
     while(1)
     {
+        pthread_testcancel();
         if(List_count(ReceivingList) == 0){
             pthread_mutex_lock(&checkReceiveListEmpty);
             {
@@ -265,23 +330,47 @@ void inputToPrint(List* ReceivingList)
         pthread_mutex_lock(&waitForReceiver);
         {
             pthread_cond_signal(&waitForReciverToPrint);
-            memset(&readBuffer1, 0, sizeof(readBuffer1));
+            
         }
         pthread_mutex_unlock(&waitForReceiver);
-            // fputs(readBuffer1, stdout);
-        // }
-            // break;
-        // pthread_mutex_unlock(&removeFromReceivingList);
-        // }
-        
+
+        if (*readBuffer1 == '!'){
+            printf("print break\n");
+            // pthread_cancel(printingInputToScreen);
+            pthread_cancel(sendingInput);
+            pthread_cancel(keyboardInput);
+            pthread_exit(NULL);
+
+        }
+        memset(&readBuffer1, 0, sizeof(readBuffer1));
     }
+
+
+    // pthread_mutex_destroy(&receiveList);
+    // pthread_mutex_destroy(&checkReceiveListEmpty);
+    // pthread_mutex_destroy(&waitForReceiver);
+
+    // pthread_cond_destroy(&emptyReceiveList);
+    // pthread_cond_destroy(&waitForReciverToPrint);
+
+    // pthread_cancel(printingInputToScreen);
+    // pthread_cancel(receivedInput);
+    // pthread_cancel(sendingInput);
+    // pthread_cancel(keyboardInput);
+
+    // pthread_exit(0);
 
 }
 
 void Threads_shutdown(void)
 {
+    printf("Shutting down\n");
     pthread_join(keyboardInput, NULL);
     pthread_join(sendingInput, NULL);
     pthread_join(receivedInput, NULL);
     pthread_join(printingInputToScreen, NULL);
+}
+
+void Clean_up_sendingStuff(){
+    
 }
