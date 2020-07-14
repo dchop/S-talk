@@ -7,7 +7,6 @@
 #include <netdb.h>
 #include <sys/socket.h>
 #include <netdb.h>
-// #include "s-talk.h"
 #include "list.h"
 
 static pthread_t keyboardInput;
@@ -40,27 +39,23 @@ struct sockaddr_in forLocalMachine;
 struct sockaddr_in forRemoteMachine;
 static int socketDescriptor; 
 
-// static char remotePortString[10];
-
 static int status;
 static int statusRemote;
-// static int checker = 0;
+static int freeCounter = 0;
 
 static struct addrinfo hints, *servinfo;
 static struct addrinfo remote, *remoteinfo;
 
-// static char s[INET6_ADDRSTRLEN];
-
 static void complexTestFreeFn(void* pItem) 
 {
-    pItem = NULL;
+    freeCounter++;
 }
 
 void *inputFromKeyboard(void* SendingList)
 {
     char readBuffer[512];
     int checkForExclamatiion = 0;
-    printf("inputFromKeyboard\n");
+    // printf("inputFromKeyboard\n");
     
     while(1)
     {
@@ -68,31 +63,26 @@ void *inputFromKeyboard(void* SendingList)
 
         while(read(STDIN_FILENO, readBuffer, 512) > 0){
 
-            // fgets(readBuffer, 512, stdin);
-            // read(STDIN_FILENO, readBuffer, 512);
-            // if(fgets(readBuffer, 512, stdin) == NULL){
-            //     continue;
-            // }
             int lengthOfInput = strlen(readBuffer);
 
             if(readBuffer[lengthOfInput-2] == '!' || readBuffer[lengthOfInput-1] == '!' || *readBuffer == '!'){
                 checkForExclamatiion = 1;
-                printf("check is: %d\n", checkForExclamatiion);
+                // printf("check is: %d\n", checkForExclamatiion);
             }
 
             pthread_mutex_lock(&sendList);
             {
                 List_add(SendingList, readBuffer);
-                int k = List_count(SendingList);
-                printf("k is: %d\n", k);
-                printf("input is: %s\n", readBuffer);
+                // int k = List_count(SendingList);
+                // printf("k is: %d\n", k);
+                // printf("input is: %s\n", readBuffer);
             }
             pthread_mutex_unlock(&sendList);
 
             if(List_count(SendingList) == 1){
                 pthread_mutex_lock(&checkSendListEmpty);
                 {
-                    printf("NOW SENDING\n");
+                    // printf("NOW SENDING\n");
                     pthread_cond_signal(&emptySendingList);
                 }
                 pthread_mutex_unlock(&checkSendListEmpty);
@@ -108,21 +98,17 @@ void *inputFromKeyboard(void* SendingList)
 
             if (checkForExclamatiion == 1){
                 pthread_cancel(keyboardInput);
-                //  pthread_exit(NULL);
             }
         }
         if(read(STDIN_FILENO, readBuffer, 512) < 0){
             printf("Error in keyboard input\n");
         }
     }
-    // pthread_cancel(keyboardInput);
-    // pthread_exit(0);
-    // close(socketDescriptor);
 }
 
 void *inputToSend(void* SendingList)
 {
-    printf("inputToSend\n");
+    // printf("inputToSend\n");
 
     char *sendBuffer;
     int checkForExclamatiion = 0;
@@ -133,29 +119,29 @@ void *inputToSend(void* SendingList)
         if(List_count(SendingList) == 0){
             pthread_mutex_lock(&checkSendListEmpty);
             {
-                printf("WAITING\n");
+                // printf("WAITING\n");
                 pthread_cond_wait(&emptySendingList, &checkSendListEmpty);
             }
             pthread_mutex_unlock(&checkSendListEmpty);
         }
-        printf("GOT IT\n");
+        // printf("GOT IT\n");
         pthread_mutex_lock(&sendList);
         {
-            int k = List_count(SendingList);
-            printf("count is: %d\n", k);
+            // int k = List_count(SendingList);
+            // printf("count is: %d\n", k);
             sendBuffer = List_remove(SendingList);
             int length = strlen(sendBuffer);
             if(*sendBuffer == '!' || sendBuffer[length-1] == '!'){
-                printf("About to break\n");
+                // printf("About to break\n");
                 checkForExclamatiion = 1;
             }
         }
         pthread_mutex_unlock(&sendList);
 
-        printf("input was: %s\n", sendBuffer);
+        // printf("input was: %s\n", sendBuffer);
         if(sendto(socketDescriptor, sendBuffer, 512, 0, remoteinfo -> ai_addr, remoteinfo->ai_addrlen) == -1){
-                          perror("talker: sendto");
-                          return NULL;        
+            perror("Error in sendto: ");
+            exit(1);        
         }
 
         pthread_mutex_lock(&waitForSender);
@@ -166,7 +152,7 @@ void *inputToSend(void* SendingList)
         pthread_mutex_unlock(&waitForSender);
 
         if(checkForExclamatiion == 1){
-            printf("ABOUT TO break in sending\n");
+            // printf("ABOUT TO break in sending\n");
 
             pthread_mutex_destroy(&sendList);
             pthread_mutex_destroy(&checkSendListEmpty);
@@ -188,11 +174,14 @@ void *inputReceived(void* ReceivingList)
 	socklen_t fromlen = sizeof(forRemoteMachine);
     int exclamationLength = 0;
     int checkExclamation;
-    printf("inputReceived\n");
+    // printf("inputReceived\n");
     while(1)
     {
         pthread_testcancel();
-        recvfrom(socketDescriptor, msg, 512, 0, (struct sockaddr *)&forRemoteMachine, &fromlen);
+        if(recvfrom(socketDescriptor, msg, 512, 0, (struct sockaddr *)&forRemoteMachine, &fromlen) == -1){
+            perror("Error in recvfrom: ");
+            exit(1);  
+        }
         // printf("message is %s\n", msg);
         // pthread_mutex_lock(&removeFromReceivingList);
         // {
@@ -224,18 +213,8 @@ void *inputReceived(void* ReceivingList)
 
 
         if (checkExclamation == 1){
-            printf("about to break in receive\n");
-            // checker = 1;
+            // printf("about to break in receive\n");
             pthread_cancel(receivedInput);
-            // close(socketDescriptor);
-            // pthread_exit(NULL);
-            // pthread_exit(NULL);
-            // break;
-           
-            // pthread_join(receivedInput, NULL);
-            // close(socketDescriptor);
-            // pthread_exit(0);
-            // break;
         }
         memset(&msg, 0, sizeof(msg));
     }
@@ -256,9 +235,7 @@ void *inputToPrint(void* ReceivingList)
             }
             pthread_mutex_unlock(&checkReceiveListEmpty);
         }
-        // if(List_count(ReceivingList)> 0){
-        // pthread_mutex_lock(&removeFromReceivingList);
-        // {
+
         pthread_mutex_lock(&receiveList);
         {
             // int k = List_count(ReceivingList);
@@ -275,7 +252,7 @@ void *inputToPrint(void* ReceivingList)
             printf("Error in printing to screen\n");
         }
 
-        // printf("Message is: %s\n", readBuffer1);
+        fflush(stdout);
 
         pthread_mutex_lock(&waitForReceiver);
         {
@@ -285,7 +262,7 @@ void *inputToPrint(void* ReceivingList)
         pthread_mutex_unlock(&waitForReceiver);
 
         if (checkexclamation == 1){
-            printf("print break\n");
+            // printf("print break\n");
 
             pthread_mutex_destroy(&receiveList);
             pthread_mutex_destroy(&checkReceiveListEmpty);
@@ -307,6 +284,13 @@ int main (int argc, char** args)
     // int localPort = atoi(args[1]);
     // int remoteMachine = atoi(args[2]);
     // int remotePort = atoi(args[3]);
+    int argsLength = strlen(args);
+
+    // if(argsLength != 4){
+    //     printf("length is: %d\n", argsLength);
+    //     printf("Error: This program needs 4 arguments\n");
+    //     exit(1);
+    // }
     
 
     // Setting up local port 
@@ -322,8 +306,18 @@ int main (int argc, char** args)
     }
 
     socketDescriptor = socket(servinfo->ai_family, servinfo->ai_socktype, servinfo->ai_protocol);
+    
+    if(socketDescriptor == -1){
+        printf("Error: Unable to create socket descriptor\n");
+        exit(1);
+    }
 
-    bind(socketDescriptor, servinfo->ai_addr, servinfo->ai_addrlen);
+    int bindCheck = bind(socketDescriptor, servinfo->ai_addr, servinfo->ai_addrlen);
+
+    if(bindCheck == -1){
+        printf("Error: Unable to bind\n");
+        exit(1);
+    }
 
     memset(&remote, 0, sizeof(remote));
     remote.ai_family = AF_INET;
@@ -332,8 +326,7 @@ int main (int argc, char** args)
 
     if((statusRemote = getaddrinfo(args[2], args[3], &remote, &remoteinfo)) != 0){
         fprintf(stderr, "getaddrinfo error: %s\n", gai_strerror(status));
-        return NULL;
-        //exit(1);
+        exit(1);
     }
 
     // Bind Socket
@@ -348,9 +341,6 @@ int main (int argc, char** args)
 
     // printf("In main\n");
     // setupPorts(args);
-
-
-    // Threads_init();
 
     freeaddrinfo(servinfo);
     freeaddrinfo(remoteinfo);
@@ -374,6 +364,5 @@ int main (int argc, char** args)
 
     close(socketDescriptor);
 
-    // Threads_shutdown();
     return 0;
 }

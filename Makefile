@@ -3,7 +3,7 @@ CFLAGS = -Wall -g -std=c99 -D _POSIX_C_SOURCE=200809L
 all: build
 
 build: list.o s-talk.o main.o
-	gcc -std=c11 $(CFLAGS) list.o s-talk.o main.o -lpthread -o output
+	gcc -std=c11 $(CFLAGS) list.o s-talk.o main.o -lpthread -o s-talk
 
 main.o: main.c
 	gcc -c -g -W -Wall -Wpedantic main.c
@@ -21,4 +21,4 @@ valgrind: build
 	valgrind --leak-check=full ./output 6060 127.0.0.1 6001
 
 clean:
-	rm -f *.o* *.out* output
+	rm -f *.o* *.out* s-talk
