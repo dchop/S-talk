@@ -18,7 +18,7 @@ run: build
 	./output
 
 valgrind: build
-	valgrind --leak-check=full ./output 6060 127.0.0.1 6001
+	valgrind -s --leak-check=full --show-leak-kinds=all --track-origins=yes --show-reachable=yes ./s-talk 6060 127.0.0.1 6001
 
 clean:
 	rm -f *.o* *.out* s-talk

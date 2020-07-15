@@ -53,7 +53,7 @@ static void complexTestFreeFn(void* pItem)
 
 void *inputFromKeyboard(void* SendingList)
 {
-    char readBuffer[512];
+    char readBuffer[512] = "";
     int checkForExclamatiion = 0;
     // printf("inputFromKeyboard\n");
     
@@ -173,7 +173,7 @@ void *inputReceived(void* ReceivingList)
     char msg[512];
 	socklen_t fromlen = sizeof(forRemoteMachine);
     int exclamationLength = 0;
-    int checkExclamation;
+    int checkExclamation =0;
     // printf("inputReceived\n");
     while(1)
     {
@@ -314,6 +314,8 @@ int main (int argc, char** args)
 
     int bindCheck = bind(socketDescriptor, servinfo->ai_addr, servinfo->ai_addrlen);
 
+    
+
     if(bindCheck == -1){
         printf("Error: Unable to bind\n");
         exit(1);
@@ -329,6 +331,8 @@ int main (int argc, char** args)
         exit(1);
     }
 
+    
+
     // Bind Socket
 
     // printf("local port is: %d\n", localPort);
@@ -341,9 +345,6 @@ int main (int argc, char** args)
 
     // printf("In main\n");
     // setupPorts(args);
-
-    freeaddrinfo(servinfo);
-    freeaddrinfo(remoteinfo);
 
     List* SendingList = List_create();
     List* ReceivingList = List_create();
@@ -358,6 +359,8 @@ int main (int argc, char** args)
     pthread_join(receivedInput, NULL);
     pthread_join(printingInputToScreen, NULL);
 
+    freeaddrinfo(servinfo); 
+    freeaddrinfo(remoteinfo);
 
     List_free(SendingList, complexTestFreeFn);
     List_free(ReceivingList, complexTestFreeFn);
