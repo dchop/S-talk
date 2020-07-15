@@ -161,6 +161,8 @@ void *inputToSend(void* SendingList)
             pthread_cond_destroy(&emptySendingList);
             pthread_cond_destroy(&waitForSenderToFinish);
 
+            sleep(0.5);
+
             pthread_cancel(receivedInput);
             pthread_cancel(printingInputToScreen);
             pthread_cancel(sendingInput);
@@ -211,9 +213,9 @@ void *inputReceived(void* ReceivingList)
         }
         pthread_mutex_unlock(&waitForReceiver);
 
-
         if (checkExclamation == 1){
             // printf("about to break in receive\n");
+            sleep(1);
             pthread_cancel(receivedInput);
         }
         memset(&msg, 0, sizeof(msg));
@@ -271,6 +273,8 @@ void *inputToPrint(void* ReceivingList)
             pthread_cond_destroy(&emptyReceiveList);
             pthread_cond_destroy(&waitForReciverToPrint);
 
+            sleep(1);
+
             pthread_cancel(sendingInput);
             pthread_cancel(keyboardInput);
             pthread_cancel(printingInputToScreen);
@@ -292,7 +296,6 @@ int main (int argc, char** args)
     //     exit(1);
     // }
     
-
     // Setting up local port 
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_INET;
@@ -314,8 +317,6 @@ int main (int argc, char** args)
 
     int bindCheck = bind(socketDescriptor, servinfo->ai_addr, servinfo->ai_addrlen);
 
-    
-
     if(bindCheck == -1){
         printf("Error: Unable to bind\n");
         exit(1);
@@ -331,8 +332,6 @@ int main (int argc, char** args)
         exit(1);
     }
 
-    
-
     // Bind Socket
 
     // printf("local port is: %d\n", localPort);
@@ -341,7 +340,6 @@ int main (int argc, char** args)
     // Setting up remote port
     // strcpy(remotePortString, remotePort);
     // strcpy(s, remoteMachine);
-
 
     // printf("In main\n");
     // setupPorts(args);
