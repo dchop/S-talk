@@ -9,6 +9,8 @@
 #include <netdb.h>
 #include "list.h"
 
+#define MSG_MAX_LEN 512
+
 // Four Threads doing the communication
 static pthread_t keyboardInput;
 static pthread_t sendingInput;
@@ -49,6 +51,7 @@ static int freeCounter = 0;
 // List Free Function pointer implementation
 static void complexTestFreeFn(void* pItem) 
 {
+    pItem = NULL;
     freeCounter++;
 }
 
@@ -62,12 +65,12 @@ void *inputFromKeyboard(void* SendingList)
     {
         pthread_testcancel();
 
-        while(read(STDIN_FILENO, keyboardInputBuffer, 512) > 0){
+        while(fgets(keyboardInputBuffer, 512, stdin) != NULL){
 
             int lengthOfInput = strlen(keyboardInputBuffer);
 
             // Checking if the input had an ! on a new line
-            if(keyboardInputBuffer[lengthOfInput-2] == '!' || keyboardInputBuffer[lengthOfInput-1] == '!' || *keyboardInputBuffer == '!'){
+            if((keyboardInputBuffer[lengthOfInput-2] == '!' && lengthOfInput == 2) || *keyboardInputBuffer == '!'){
                 checkForExclamation = 1;
             }
 
@@ -98,6 +101,7 @@ void *inputFromKeyboard(void* SendingList)
 
             // If an exclamation was found, then cancel the keyboardInput thread
             if (checkForExclamation == 1){
+                sleep(1);
                 pthread_cancel(keyboardInput);
             }
         }
@@ -106,6 +110,7 @@ void *inputFromKeyboard(void* SendingList)
             printf("Error in keyboard input\n");
         }
     }
+    return NULL;
 }
 
 // Function for thread that removes an item off the list and sends it over
@@ -133,7 +138,7 @@ void *inputToSend(void* SendingList)
             sendBuffer = List_remove(SendingList);
             int length = strlen(sendBuffer);
 
-            if(*sendBuffer == '!' || sendBuffer[length-1] == '!'){
+            if(*sendBuffer == '!' || (sendBuffer[length-2] == '!' && length == 2)){
                 checkForExclamation = 1;
             }
         }
@@ -162,13 +167,14 @@ void *inputToSend(void* SendingList)
             pthread_cond_destroy(&emptySendingList);
             pthread_cond_destroy(&waitForSenderToFinish);
 
-            sleep(0.5);
+            sleep(1);
 
             pthread_cancel(receivedInput);
             pthread_cancel(printingInputToScreen);
             pthread_cancel(sendingInput);
         }
     }
+    return NULL;
 }
 
 // Function for thread that just recevies an input from the sender and adds it to a list
@@ -192,7 +198,7 @@ void *inputReceived(void* ReceivingList)
         receivedMsgLength = strlen(receivedMsg);
 
         // Checking if the an ! was received
-        if (*receivedMsg == '!' || receivedMsg[receivedMsgLength-1] == '!'){
+        if (*receivedMsg == '!' || (receivedMsg[receivedMsgLength-2] == '!' && receivedMsgLength == 2)){
             checkExclamation = 1;
         }
 
@@ -228,6 +234,7 @@ void *inputReceived(void* ReceivingList)
 
         memset(&receivedMsg, 0, sizeof(receivedMsg));
     }
+    return NULL;
 }
 
 // Function for thread that just removes an item from the list and prints it to the screen
@@ -255,7 +262,7 @@ void *inputToPrint(void* ReceivingList)
         {
             printingBuffer = List_remove(ReceivingList);
             length = strlen(printingBuffer);
-            if (*printingBuffer == '!' || printingBuffer[length-1] == '!'){
+            if (*printingBuffer == '!' || (printingBuffer[length-2] == '!' && length == 2)){
                 checkexclamation = 1;
             }
         }
@@ -293,6 +300,7 @@ void *inputToPrint(void* ReceivingList)
         
         memset(&printingBuffer, 0, sizeof(printingBuffer));
     }
+    return NULL;
 }
 
 int main (int argc, char** args)
