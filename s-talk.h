@@ -12,9 +12,9 @@ void inputFromKeyboard(List* SendingList);
 
 void *inputToSend(List* SendingList);
 
-void inputReceived(List* ReceivingList);
+void *inputReceived(List* ReceivingList);
 
-void inputToPrint(List* ReceivingList);
+void *inputToPrint(List* ReceivingList);
 
 void Threads_shutdown(void);
 
