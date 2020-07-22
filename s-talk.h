@@ -21,6 +21,4 @@ void *inputToPrint(void* ReceivingList);
 
 void Threads_shutdown(void);
 
-void Clean_up_sendingStuff();
-
 #endif

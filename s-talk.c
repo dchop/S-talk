@@ -130,7 +130,7 @@ void *inputFromKeyboard(void* SendingList)
             int lengthOfInput = strlen(keyboardInputBuffer);
 
             // Checking if the input had an ! on a new line
-            if((keyboardInputBuffer[lengthOfInput-2] == '!' && lengthOfInput == 2) || *keyboardInputBuffer == '!'){
+            if((keyboardInputBuffer[lengthOfInput-2] == '!' && lengthOfInput == 2) || (keyboardInputBuffer[0] == '!' && lengthOfInput == 1)){
                 checkForExclamation = 1;
             }
 
@@ -201,7 +201,7 @@ void *inputToSend(void* SendingList)
             sendBuffer = List_remove(SendingList);
             int length = strlen(sendBuffer);
 
-            if(*sendBuffer == '!' || (sendBuffer[length-2] == '!' && length == 2)){
+            if((sendBuffer[0] == '!' && length == 1) || (sendBuffer[length-2] == '!' && length == 2)){
                 checkForExclamation = 1;
             }
         }
@@ -246,9 +246,9 @@ void *inputToSend(void* SendingList)
 // Function for thread that just recevies an input from the sender and adds it to a list
 void *inputReceived(void* ReceivingList)
 {
-    char receivedMsg[MSG_MAX_LEN];
+    char receivedMsg[MSG_MAX_LEN] = "";
 	socklen_t fromlen = sizeof(forRemoteMachine);
-    int receivedMsgLength = 0;
+    // int receivedMsgLength = 0;
     int checkExclamation = 0;
 
     while(1)
@@ -261,10 +261,10 @@ void *inputReceived(void* ReceivingList)
             exit(1);  
         }
 
-        receivedMsgLength = strlen(receivedMsg);
+        int receivedMsgLength = strlen(receivedMsg);
 
         // Checking if the an ! was received
-        if (*receivedMsg == '!' || (receivedMsg[receivedMsgLength-2] == '!' && receivedMsgLength == 2)){
+        if ((receivedMsg[0] == '!' && receivedMsgLength == 1) || (receivedMsg[receivedMsgLength-2] == '!' && receivedMsgLength == 2)){
             checkExclamation = 1;
         }
 
@@ -292,7 +292,7 @@ void *inputReceived(void* ReceivingList)
         pthread_mutex_lock(&waitForReceiver);
         {
             pthread_cond_wait(&waitForReciverToPrint, &waitForReceiver);
-            
+            memset(&receivedMsg, 0, sizeof(receivedMsg));
         }
         pthread_mutex_unlock(&waitForReceiver);
 
@@ -304,7 +304,6 @@ void *inputReceived(void* ReceivingList)
                 exit(1);
             }
         }
-        memset(&receivedMsg, 0, sizeof(receivedMsg));
     }
     return NULL;
 }
@@ -312,9 +311,9 @@ void *inputReceived(void* ReceivingList)
 // Function for thread that just removes an item from the list and prints it to the screen
 void *inputToPrint(void* ReceivingList)
 {
-    char *printingBuffer;
+    char *printingBuffer = "";
     int checkexclamation = 0;
-    int length;
+    int length = 0;
 
     while(1)
     {
@@ -334,16 +333,14 @@ void *inputToPrint(void* ReceivingList)
         {
             printingBuffer = List_remove(ReceivingList);
             length = strlen(printingBuffer);
-            if (*printingBuffer == '!' || (printingBuffer[length-2] == '!' && length == 2)){
+            if ((printingBuffer[0] == '!' && length == 1) || (printingBuffer[length-2] == '!' && length == 2)){
                 checkexclamation = 1;
             }
         }
         pthread_mutex_unlock(&receiveList);
 
         // Print to the screen 
-        if(write(STDOUT_FILENO, printingBuffer, MSG_MAX_LEN) < 0){
-            printf("Error in printing to screen\n");
-        }
+        fputs(printingBuffer, stdout);
 
         fflush(stdout);
 
