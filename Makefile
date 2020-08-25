@@ -1,28 +1,34 @@
-CFLAGS = -Wall -g -std=c99 -D _POSIX_C_SOURCE=200809L 
-
-all: build
+CFLAGS = -std=c11 -g -W -Wall -Wpedantic
+LIB = -lpthread 
+MAIN = $(wildcard $(SRCDIR)/main.c)
+LIST = $(wildcard $(SRCDIR)/list.c)
+STALK = $(wildcard $(SRCDIR)/s-talk.c)
+INC = -I include
+BIN = bin/s-talk
+all: clean build
 
 build: list.o s-talk.o main.o
-	gcc -std=c11 $(CFLAGS) list.o s-talk.o main.o -lpthread -o s-talk
+	@mkdir -p bin
+	gcc $(CFLAGS) list.o s-talk.o main.o $(LIB) -o $(BIN)
 
-main.o: main.c
-	gcc -c -g -W -Wall -Wpedantic main.c
+main.o: $(MAIN)
+	gcc -c -$(CFLAGS) $(INC) $(MAIN)
 
-list.o: list.c
-	gcc -c -g -W -Wall -Wpedantic list.c
+list.o: $(LIST)
+	gcc -c $(CFLAGS) $(INC) $(LIST)
 
-stalk-o: s-talk.c
-	gcc -c -g -W -Wall -Wpedantic s-talk.c
+s-talk-o: $(STALK)
+	gcc -c $(CFLAGS) $(INC) $(STALK)
 
-run: build
-	./output
+mem: clean build mem-check
 
-valgrind: build
-	 valgrind -s --leak-check=full \
+mem-check:
+	@mkdir -p bin
+	valgrind -s --leak-check=full \
 			 --show-leak-kinds=all \
 			 --track-origins=yes \
 			 --show-reachable=yes\
-			./s-talk 6060 127.0.0.1 6001
+			$(BIN) 6060 127.0.0.1 6001
 
 clean:
-	rm -f *.o* *.out* s-talk
+	rm -f *.o* *.out* ./$(BIN)
