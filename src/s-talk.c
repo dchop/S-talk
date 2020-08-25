@@ -246,7 +246,7 @@ void *inputToSend(void* SendingList)
 // Function for thread that just recevies an input from the sender and adds it to a list
 void *inputReceived(void* ReceivingList)
 {
-    char receivedMsg[MSG_MAX_LEN] = "";
+    char receivedMsg[MSG_MAX_LEN];
 	socklen_t fromlen = sizeof(forRemoteMachine);
     // int receivedMsgLength = 0;
     int checkExclamation = 0;
@@ -255,15 +255,21 @@ void *inputReceived(void* ReceivingList)
     {
         pthread_testcancel();
 
+        memset(&receivedMsg, 0, sizeof(receivedMsg));
+        
         // Receiving keyboard input from the sender
         if(recvfrom(socketDescriptor, receivedMsg, MSG_MAX_LEN, 0, (struct sockaddr *)&forRemoteMachine, &fromlen) == -1){
             perror("Error in recvfrom: ");
             exit(1);  
         }
 
+        char *ret;
+
+        ret = strstr(receivedMsg, "!\n");
+
         int receivedMsgLength = strlen(receivedMsg);
 
-        // Checking if the an ! was received
+        // Checking if an ! was received
         if ((receivedMsg[0] == '!' && receivedMsgLength == 1) || (receivedMsg[receivedMsgLength-2] == '!' && receivedMsgLength == 2)){
             checkExclamation = 1;
         }
@@ -318,6 +324,8 @@ void *inputToPrint(void* ReceivingList)
     while(1)
     {
         pthread_testcancel();
+
+        memset(&printingBuffer, 0, sizeof(printingBuffer));
 
         // Wait if the list is empty
         if(List_count(ReceivingList) == 0){
