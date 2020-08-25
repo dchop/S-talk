@@ -5,9 +5,8 @@ Multi-threaded program for chatting across different terminals on the same netwo
 ```
 # Clean and build executable
 $ make
-# Run the executable
+# Run the executable on 2 different terminals
 $ ./bin/s-talk
-S-talk
 ```
 
 ## Features 
