@@ -5,6 +5,7 @@ LIST = $(wildcard $(SRCDIR)/list.c)
 STALK = $(wildcard $(SRCDIR)/s-talk.c)
 INC = -I include
 BIN = bin/s-talk
+
 all: clean build
 
 build: list.o s-talk.o main.o
@@ -28,7 +29,7 @@ mem-check:
 			 --show-leak-kinds=all \
 			 --track-origins=yes \
 			 --show-reachable=yes\
-			$(BIN) 6060 127.0.0.1 6001
+			./$(BIN) 6060 127.0.0.1 6001
 
 clean:
 	rm -f *.o* *.out* ./$(BIN)
