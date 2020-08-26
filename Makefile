@@ -1,8 +1,8 @@
 CFLAGS = -std=c11 -g -W -Wall -Wpedantic
 LIB = -lpthread 
-MAIN = $(wildcard $(SRCDIR)/main.c)
-LIST = $(wildcard $(SRCDIR)/list.c)
-STALK = $(wildcard $(SRCDIR)/s-talk.c)
+MAIN = ./src/main.c
+LIST = ./src/list.c
+STALK = ./src/s-talk.c
 INC = -I include
 BIN = bin/s-talk
 
@@ -18,7 +18,7 @@ main.o: $(MAIN)
 list.o: $(LIST)
 	gcc -c $(CFLAGS) $(INC) $(LIST)
 
-s-talk-o: $(STALK)
+s-talk.o: $(STALK)
 	gcc -c $(CFLAGS) $(INC) $(STALK)
 
 mem: clean build mem-check
